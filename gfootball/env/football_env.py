@@ -41,6 +41,8 @@ class FootballEnv(gym.Env):
     # team and the index on the team to generate observations appropriately.
     self._agent = None
     self._agent_index = -1
+    self._agent_left_position = -1
+    self._agent_right_position = -1
     self._players = self._construct_players(config['players'], player_config)
     self._env = football_env_wrapper.FootballEnvWrapper(self._config)
     self._num_actions = len(football_action_set.get_action_set(self._config))
@@ -129,7 +131,8 @@ class FootballEnv(gym.Env):
 
   def _get_actions(self):
     obs = self._env.observation()
-    actions = []
+    left_actions = []
+    right_actions = []
     left_player_position = 0
     right_player_position = 0
     for player in self._players:
@@ -146,7 +149,9 @@ class FootballEnv(gym.Env):
       assert len(adopted_obs) == len(
           a), 'Player returned {} actions instead of {}.'.format(
               len(a), len(adopted_obs))
-      actions.extend(a)
+      left_actions.extend(a[:player.num_controlled_left_players()])
+      right_actions.extend(a[player.num_controlled_left_players():])
+    actions = left_actions + right_actions
     return actions
 
   def step(self, action):
