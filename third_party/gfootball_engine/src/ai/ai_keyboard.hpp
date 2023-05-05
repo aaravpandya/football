@@ -15,33 +15,52 @@
 #define _AI_KEYBOARD
 
 #include "../base/math/vector3.hpp"
+#include "../defines.hpp"
 #include "../hid/ihidevice.hpp"
 #include <set>
 
 
-class AIControlledKeyboard : public IHIDevice {
+enum e_ButtonFunction {
+  e_ButtonFunction_LongPass,
+  e_ButtonFunction_HighPass,
+  e_ButtonFunction_ShortPass,
+  e_ButtonFunction_Shot,
+  e_ButtonFunction_KeeperRush,
+  e_ButtonFunction_Sliding,
+  e_ButtonFunction_Pressure,
+  e_ButtonFunction_TeamPressure,
+  e_ButtonFunction_Switch,
+  e_ButtonFunction_Sprint,
+  e_ButtonFunction_Dribble,
+  e_ButtonFunction_Size
+};
+
+class AIControlledKeyboard {
 
   public:
-    AIControlledKeyboard();
-    virtual ~AIControlledKeyboard() {}
-
-    virtual void LoadConfig() {}
-    virtual void SaveConfig() {}
-
-    virtual void Process();
-
-    virtual bool GetButton(e_ButtonFunction buttonFunction);
-    virtual void SetButton(e_ButtonFunction buttonFunction, bool state);
-    virtual bool GetPreviousButtonState(e_ButtonFunction buttonFunction);
-    virtual Vector3 GetDirection();
+    AIControlledKeyboard(e_PlayerColor color);
+    bool GetButton(e_ButtonFunction buttonFunction);
+    void ResetNotSticky();
+    void SetButton(e_ButtonFunction buttonFunction, bool state);
+    bool GetPreviousButtonState(e_ButtonFunction buttonFunction);
+    blunted::Vector3 GetDirection();
+    blunted::Vector3 GetOriginalDirection();
 
     // Methods for remote controlling.
-    void SetDirection(const Vector3& new_direction);
-    virtual void Reset();
+    void SetDirection(const blunted::Vector3& new_direction);
+    bool Disabled() { return disabled_;}
+    void SetDisabled(bool disabled);
+    void Reset();
+    void ProcessState(EnvState* state);
+    void Mirror(float mirror);
+    e_PlayerColor GetPlayerColor() const { return playerColor; }
 
   private:
-    Vector3 direction_;
-    std::set<e_ButtonFunction> buttons_pressed_;
+    blunted::Vector3 direction_;
+    float mirror = 1.0f;
+    bool disabled_ = false;
+    bool buttons_pressed_[e_ButtonFunction_Size];
+    const e_PlayerColor playerColor;
 };
 
 #endif

@@ -29,7 +29,7 @@ from gfootball.examples import models
 import gym
 import joblib
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class Player(player_base.PlayerBase):
@@ -38,8 +38,11 @@ class Player(player_base.PlayerBase):
   def __init__(self, player_config, env_config):
     player_base.PlayerBase.__init__(self, player_config)
 
-    self._action_set = 'default'
-    self._sess = tf.Session()
+    self._action_set = (env_config['action_set']
+                        if 'action_set' in env_config else 'default')
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    self._sess = tf.Session(config=config)
     self._player_prefix = 'player_{}'.format(player_config['index'])
     stacking = 4 if player_config.get('stacked', True) else 1
     policy = player_config.get('policy', 'cnn')

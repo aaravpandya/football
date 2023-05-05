@@ -27,21 +27,40 @@ class Player;
 class HumanController : public PlayerController {
 
   public:
-    HumanController(Match *match, IHIDevice *hid);
+    HumanController(Match *match = nullptr, AIControlledKeyboard *hid = nullptr);
     virtual ~HumanController();
 
     virtual void SetPlayer(PlayerBase *player);
+    bool Disabled() const {
+      return hid->Disabled();
+    }
 
     virtual void RequestCommand(PlayerCommandQueue &commandQueue);
     virtual void Process();
     virtual Vector3 GetDirection();
     virtual float GetFloatVelocity();
 
+    void PreProcess(Match *match, AIControlledKeyboard *hid) {
+      this->match = match;
+      this->hid = hid;
+   }
+
+    void ProcessState(EnvState* state) { DO_VALIDATION;
+      ProcessPlayerController(state);
+      hid->ProcessState(state);
+      state->process(actionMode);
+      state->process(actionButton);
+      state->process(actionBufferTime_ms);
+      state->process(gauge_ms);
+      state->process(previousDirection);
+      state->process(steadyDirection);
+      state->process(lastSteadyDirectionSnapshotTime_ms);
+    }
     virtual int GetReactionTime_ms();
 
-    IHIDevice *GetHIDevice() { return hid; }
+    AIControlledKeyboard *GetHIDevice() { return hid; }
 
-    int GetActionMode() { return actionMode; }
+    int GetActionMode() { DO_VALIDATION; return actionMode; }
 
     virtual void Reset();
 
@@ -49,7 +68,7 @@ class HumanController : public PlayerController {
 
     void _GetHidInput(Vector3 &rawInputDirection, float &rawInputVelocityFloat);
 
-    IHIDevice *hid;
+    AIControlledKeyboard *hid;
 
     // set when a contextual button (example: pass/defend button) is pressed
     // once this is set and the button stays pressed, it stays the same
@@ -64,7 +83,7 @@ class HumanController : public PlayerController {
     Vector3 previousDirection;
     Vector3 steadyDirection;
     int lastSteadyDirectionSnapshotTime_ms = 0;
-
+    float mirror = 1.0;
 };
 
 #endif

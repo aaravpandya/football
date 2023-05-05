@@ -19,7 +19,9 @@
 #define _HPP_DEFINES
 
 #ifdef WIN32
+#define NOMINMAX
 #include <windows.h>
+#undef NOMINMAX
 #endif
 
 #include <cstdio>
@@ -41,8 +43,9 @@
 #include <boost/thread/condition.hpp>
 #include <boost/signals2.hpp>
 #include <boost/signals2/slot.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include "backtrace.h"
+#include "base/log.hpp"
 
 #define CHECK(a) assert(a);
 #define CHECK_EQ(a, b) assert((a) == (b));
@@ -55,6 +58,122 @@ constexpr float EPSILON = 0.000001;
 #define MAX_PLAYERS 11
 
 typedef std::string screenshoot;
+
+using namespace boost::placeholders;
+
+namespace blunted {
+  class Animation;
+  //using namespace boost;
+}
+
+class Player;
+class Team;
+class HumanGamer;
+class AIControlledKeyboard;
+class ScenarioConfig;
+class GameContext;
+class GameEnv;
+
+
+#include "base/math/vector3.hpp"
+
+class EnvState {
+ public:
+  EnvState(GameEnv* game_env, const std::string& state, const std::string reference = "");
+  const ScenarioConfig* getConfig() { return scenario_config; }
+  const GameContext* getContext() { return context; }
+  void process(std::string &value);
+  void process(blunted::Animation* &value);
+  template<typename T> void process(std::vector<T>& collection) {
+    int size = collection.size();
+    process(size);
+    collection.resize(size);
+    for (auto& el : collection) {
+      process(el);
+    }
+  }
+  template<typename T> void process(std::list<T>& collection) {
+    int size = collection.size();
+    process(size);
+    collection.resize(size);
+    for (auto& el : collection) {
+      process(el);
+    }
+  }
+  void process(Player*& value);
+  void process(HumanGamer*& value);
+  void process(AIControlledKeyboard*& value);
+  void process(Team*& value);
+  bool isFailure() {
+    return failure;
+  }
+  bool enabled() {
+    return this->disable_cnt == 0;
+  }
+  void setValidate(bool validate) {
+    this->disable_cnt += validate ? -1 : 1;
+  }
+  void setCrash(bool crash) {
+    this->crash = crash;
+  }
+  bool Load() { return load; }
+  int getpos() {
+    return pos;
+  }
+  bool eos();
+  template<typename T> void process(T& obj) {
+    if (load) {
+      if (pos + sizeof(T) > state.size()) {
+        Log(blunted::e_FatalError, "EnvState", "state", "state is invalid");
+      }
+      memcpy(&obj, &state[pos], sizeof(T));
+      pos += sizeof(T);
+    } else {
+      state.resize(pos + sizeof(T));
+      memcpy(&state[pos], &obj, sizeof(T));
+      if (!failure && disable_cnt == 0 && !reference.empty() && (*(T*) &state[pos]) != (*(T*) &reference[pos])) {
+        failure = true;
+        std::cout << "Position:  " << pos << std::endl;
+        std::cout << "Type:      " << typeid(obj).name() << std::endl;
+        std::cout << "Value:     " << obj << std::endl;
+        std::cout << "Reference: " << (*(T*) &reference[pos]) << std::endl;
+        if (crash) {
+          Log(blunted::e_FatalError, "EnvState", "state", "Reference mismatch");
+        } else {
+          print_stacktrace();
+        }
+      }
+      pos += sizeof(T);
+      if (pos > 10000000) {
+        Log(blunted::e_FatalError, "EnvState", "state", "state is too big");
+      }
+    }
+  }
+  void SetPlayers(const std::vector<Player*>& players);
+  void SetHumanControllers(const std::vector<HumanGamer*>& controllers);
+  void SetControllers(const std::vector<AIControlledKeyboard*>& controllers);
+  void SetAnimations(const std::vector<blunted::Animation*>& animations);
+  void SetTeams(Team* team0, Team* team1);
+  const std::string& GetState();
+ protected:
+  bool failure = false;
+  bool stack = true;
+  bool load = false;
+  char disable_cnt = 0;
+  bool crash = false;
+  std::vector<Player*> players;
+  std::vector<blunted::Animation*> animations;
+  std::vector<Team*> teams;
+  std::vector<HumanGamer*> human_controllers;
+  std::vector<AIControlledKeyboard*> controllers;
+  std::string state;
+  std::string reference;
+  int pos = 0;
+  ScenarioConfig* scenario_config;
+  GameContext* context;
+ private:
+  void process(void** collection, int size, void*& element);
+};
 
 // 3-d position of object (available from python).
 struct Position {
@@ -116,6 +235,15 @@ enum e_GameMode {
   e_GameMode_Penalty,
 };
 
+enum e_PlayerColor {
+  e_PlayerColor_Blue,
+  e_PlayerColor_Green,
+  e_PlayerColor_Red,
+  e_PlayerColor_Yellow,
+  e_PlayerColor_Purple,
+  e_PlayerColor_Default
+};
+
 enum e_Team {
   e_Left,
   e_Right,
@@ -123,7 +251,7 @@ enum e_Team {
 
 // Information about the player (available from python).
 struct PlayerInfo {
-  PlayerInfo() {}
+  PlayerInfo() { }
   PlayerInfo(const PlayerInfo& f) {
     player_position = f.player_position;
     player_direction = f.player_direction;
@@ -131,6 +259,7 @@ struct PlayerInfo {
     is_active = f.is_active;
     tired_factor = f.tired_factor;
     role = f.role;
+    designated_player = f.designated_player;
   }
   bool operator == (const PlayerInfo& f) const {
     return player_position == f.player_position &&
@@ -138,19 +267,21 @@ struct PlayerInfo {
         has_card == f.has_card &&
         is_active == f.is_active &&
         tired_factor == f.tired_factor &&
-        role == f.role;
+        role == f.role &&
+        designated_player == f.designated_player;
   }
   Position player_position;
   Position player_direction;
   bool has_card = false;
   bool is_active = true;
+  bool designated_player = false;
   float tired_factor = 0.0f; // In the [0..1] range.
   e_PlayerRole role = e_PlayerRole_GK;
 };
 
 struct ControllerInfo {
-  ControllerInfo() {}
-  ControllerInfo(int controlled_player) : controlled_player(controlled_player) {}
+  ControllerInfo() { }
+  ControllerInfo(int controlled_player) : controlled_player(controlled_player) { }
   bool operator == (const ControllerInfo& f) const {
     return controlled_player == f.controlled_player;
   }
@@ -171,14 +302,7 @@ struct SharedInfo {
   bool is_in_play = false;
   int ball_owned_team = 0;
   int ball_owned_player = 0;
-  bool done = false;
+  int step = 0;
 };
-
-namespace blunted {
-
-  using namespace boost;
-  typedef float real;
-
-}
 
 #endif

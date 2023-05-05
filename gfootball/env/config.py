@@ -18,37 +18,15 @@
 from __future__ import print_function
 
 import copy
-import logging
-import sys
-import traceback
+import tempfile
+import os
+import platform
 
 from absl import flags
 
 import gfootball_engine as libgame
 
 FLAGS = flags.FLAGS
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(message)s')
-
-
-def log(func):
-  # Change to True to enable tracing / debugging.
-  debug = False
-  if not debug:
-    return func
-  else:
-    def wrapper(*args, **kwargs):
-      try:
-        logging.error('ENTER %s:%s', func.__module__, func.__name__)
-        res = func(*args, **kwargs)
-        logging.error('EXIT %s:%s', func.__module__, func.__name__)
-        return res
-      except Exception as e:
-        logging.error('Exception: %s', traceback.format_exc())
-        sys.exit(1)
-
-    return wrapper
-
 
 def parse_player_definition(definition):
   """Parses player definition.
@@ -65,7 +43,12 @@ def parse_player_definition(definition):
   d = {'left_players': 0,
        'right_players': 0}
   if ':' in definition:
-    (name, params) = definition.split(':')
+    # Windows requires special handling of replays, because path may contain ':'
+    if platform.system() == 'Windows' and definition.startswith('replay:') \
+        and len(definition.split(':')) > 2:
+      (name, params) = 'replay', definition.split('replay:')[-1]
+    else:
+      (name, params) = definition.split(':')
     for param in params.split(','):
       (key, value) = param.split('=')
       d[key] = value
@@ -102,19 +85,22 @@ class Config(object):
   def __init__(self, values=None):
     self._values = {
         'action_set': 'default',
-        'enable_sides_swap': False,
+        'custom_display_stats': None,
         'display_game_stats': True,
         'dump_full_episodes': False,
         'dump_scores': False,
-        'game_difficulty': 0.6,
         'players': ['agent:left_players=1'],
         'level': '11_vs_11_stochastic',
         'physics_steps_per_frame': 10,
+        'render_resolution_x': 1280,
         'real_time': False,
-        'render': False,
-        'tracesdir': '/tmp/dumps',
+        'tracesdir': os.path.join(tempfile.gettempdir(), 'dumps'),
+        'video_format': 'avi',
+        'video_quality_level': 0,  # 0 - low, 1 - medium, 2 - high
         'write_video': False
     }
+    self._values['render_resolution_y'] = int(
+        0.5625 * self._values['render_resolution_x'])
     if values:
       self._values.update(values)
     self.NewScenario()
@@ -145,6 +131,9 @@ class Config(object):
   def __setitem__(self, key, value):
     self._values[key] = value
 
+  def __contains__(self, key):
+    return key in self._scenario_values or key in self._values
+
   def get_dictionary(self):
     cfg = copy.deepcopy(self._values)
     cfg.update(self._scenario_values)
@@ -160,28 +149,13 @@ class Config(object):
   def update(self, config):
     self._values.update(config)
 
-  def GameConfig(self):
-    cfg = libgame.GameConfig()
-    cfg.render_mode = libgame.e_RenderingMode.e_Onscreen if self[
-        'render'] else libgame.e_RenderingMode.e_Disabled
-    cfg.high_quality = self['render']
-    cfg.physics_steps_per_frame = self['physics_steps_per_frame']
-    return cfg
-
   def ScenarioConfig(self):
     return self._scenario_cfg
 
-  def NewScenario(self):
+  def NewScenario(self, inc = 1):
     if 'episode_number' not in self._values:
       self._values['episode_number'] = 0
-    self._values['episode_number'] += 1
-    self._scenario_values = {
-        'deterministic': False,
-        'end_episode_on_score': False,
-        'end_episode_on_possession_change': False,
-        'end_episode_on_out_of_play': False,
-        'game_duration': 3000,
-        'offsides': True,
-    }
+    self._values['episode_number'] += inc
+    self._scenario_values = {}
     from gfootball.env import scenario_builder
     self._scenario_cfg = scenario_builder.Scenario(self).ScenarioConfig()

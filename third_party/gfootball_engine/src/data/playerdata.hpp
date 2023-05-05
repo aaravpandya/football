@@ -29,12 +29,12 @@
 
 class PlayerProperties {
  public:
-  PlayerProperties() {
-    for (int x = 0; x < player_stat_max; x++) {
+  PlayerProperties() { DO_VALIDATION;
+    for (int x = 0; x < player_stat_max; x++) { DO_VALIDATION;
       data[x] = 1.0f;
     }
   }
-  void Set(PlayerStat name, real value) {
+  void Set(PlayerStat name, real value) { DO_VALIDATION;
     data[name] = atof(real_to_str(value).c_str());
   }
   real GetReal(PlayerStat name) const {
@@ -48,14 +48,9 @@ class PlayerProperties {
 class PlayerData {
 
   public:
-    PlayerData(int playerDatabaseID);
+    PlayerData(int playerDatabaseID, bool left_team);
     PlayerData();
     virtual ~PlayerData();
-
-    void UpdateName(const std::string& first, const std::string& last) {
-      firstName = first;
-      lastName = last;
-    }
     std::string GetLastName() const { return lastName; }
     inline float GetStat(PlayerStat name) const { return stats.GetReal(name); }
     float get_physical_velocity() const { return physical_velocity; }
@@ -63,20 +58,15 @@ class PlayerData {
     int GetSkinColor() const { return skinColor; }
 
     std::string GetHairStyle() const { return hairStyle; }
-    void SetHairStyle(const std::string& style) { hairStyle = style; }
+    void SetHairStyle(const std::string& style) { DO_VALIDATION; hairStyle = style; }
 
     std::string GetHairColor() const { return hairColor; }
     float GetHeight() const { return height; }
-
-    // Player mesh body model. Possible values: 0 or 1.
-    int GetModelId() const { return model_id; }
-    void SetModelId(const int id) { model_id = id; }
 
   private:
     void UpdateValues();
     float physical_velocity = 0.0;
   protected:
-    int databaseID = 0;
     PlayerProperties stats;
 
     int skinColor = 0;
@@ -85,8 +75,6 @@ class PlayerData {
     float height = 0.0f;
     std::string firstName;
     std::string lastName;
-    int model_id = 0;
-
 };
 
 #endif

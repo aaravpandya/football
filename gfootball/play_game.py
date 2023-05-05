@@ -21,6 +21,7 @@ from __future__ import print_function
 
 from absl import app
 from absl import flags
+from absl import logging
 
 
 from gfootball.env import config
@@ -32,32 +33,36 @@ flags.DEFINE_string('players', 'keyboard:left_players=1',
                     'Semicolon separated list of players, single keyboard '
                     'player on the left by default')
 flags.DEFINE_string('level', '', 'Level to play')
-flags.DEFINE_enum('action_set', 'full', ['default', 'full'], 'Action set')
+flags.DEFINE_enum('action_set', 'default', ['default', 'full'], 'Action set')
 flags.DEFINE_bool('real_time', True,
                   'If true, environment will slow down so humans can play.')
+flags.DEFINE_bool('render', True, 'Whether to do game rendering.')
 
 
 def main(_):
   players = FLAGS.players.split(';') if FLAGS.players else ''
   assert not (any(['agent' in player for player in players])
              ), ('Player type \'agent\' can not be used with play_game.')
-  cfg = config.Config({
+  cfg_values = {
       'action_set': FLAGS.action_set,
       'dump_full_episodes': True,
       'players': players,
       'real_time': FLAGS.real_time,
-      'render': True
-  })
+  }
   if FLAGS.level:
-    cfg['level'] = FLAGS.level
+    cfg_values['level'] = FLAGS.level
+  cfg = config.Config(cfg_values)
   env = football_env.FootballEnv(cfg)
+  if FLAGS.render:
+    env.render()
   env.reset()
   try:
     while True:
-      _, _, done, _ = env.step(None)
+      _, _, done, _ = env.step([])
       if done:
         env.reset()
   except KeyboardInterrupt:
+    logging.warning('Game stopped, writing dump...')
     env.write_dump('shutdown')
     exit(1)
 
