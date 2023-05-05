@@ -76,7 +76,7 @@ def compute_hash(env, actions):
 
 
 def run_scenario(cfg, queue, actions, render=False, validation=True):
-  env = football_env.FootballEnv(cfg)
+  env = create_wrapped_football_env(cfg)
   if render:
     env.render()
   obs = env.reset()
@@ -216,7 +216,7 @@ class FootballEnvTest(parameterized.TestCase):
     """Score on an empty goal."""
     cfg = config.Config()
 
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     cfg['level'] = 'academy_empty_goal'
     last_o = env.reset()[0]
     for _ in range(120):
@@ -238,7 +238,7 @@ class FootballEnvTest(parameterized.TestCase):
     """Test second half feature."""
     cfg = config.Config()
     cfg['level'] = 'tests.second_half'
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     for _ in range(5):
       o, _, done, _ = env.step(football_action_set.action_idle)
       self.assertFalse(done)
@@ -259,7 +259,7 @@ class FootballEnvTest(parameterized.TestCase):
     cfg = config.Config({
         'level': 'tests.11_vs_11_hard_deterministic',
     })
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     env.render()
     o = env.reset()
     hash_value = observation_hash(o)
@@ -290,7 +290,7 @@ class FootballEnvTest(parameterized.TestCase):
     cfg = config.Config({
         'level': 'tests.11_vs_11_hard_deterministic',
     })
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     o = env.reset()
     for _ in range(10):
       o, _, _, _ = env.step(football_action_set.action_right)
@@ -307,7 +307,7 @@ class FootballEnvTest(parameterized.TestCase):
   def test_different_action_formats(self):
     """Verify different action formats are accepted."""
     cfg = config.Config()
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     env.reset()
     env.step(football_action_set.action_right)
     env.step([football_action_set.action_right])
@@ -324,7 +324,7 @@ class FootballEnvTest(parameterized.TestCase):
       cfg = config.Config({
           'level': 'tests.11_vs_11_hard_deterministic'
       })
-      env = football_env.FootballEnv(cfg)
+      env = create_wrapped_football_env(cfg)
       actions = len(football_action_set.get_action_set(cfg))
       hash_value = compute_hash(env, actions)
       env.close()
@@ -342,18 +342,18 @@ class FootballEnvTest(parameterized.TestCase):
       # Rendering is not supported.
       return
     cfg = config.Config({})
-    env1 = football_env.FootballEnv(cfg)
+    env1 = create_wrapped_football_env(cfg)
     env1.render()
     env1.reset()
 
-    env2 = football_env.FootballEnv(cfg)
+    env2 = create_wrapped_football_env(cfg)
     try:
       env2.render()
     except AssertionError:
       env1.close()
       env2.close()
       # It is still possible to render.
-      env3 = football_env.FootballEnv(cfg)
+      env3 = create_wrapped_football_env(cfg)
       env3.reset()
       env3.close()
       return
@@ -376,7 +376,7 @@ class FootballEnvTest(parameterized.TestCase):
       # Forge doesn't support rendering.
       return
     cfg = config.Config({'write_video': False})
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     env.render()
     env.reset()
     initial_memory = self.memory_usage()
@@ -393,7 +393,7 @@ class FootballEnvTest(parameterized.TestCase):
         'level': 'tests.11_vs_11_hard_deterministic',
         'players': players
     })
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     actions = len(football_action_set.get_action_set(cfg))
     hash_value1 = compute_hash(env, actions)
     players = [players[1], players[0]]
@@ -401,7 +401,7 @@ class FootballEnvTest(parameterized.TestCase):
         'level': 'tests.11_vs_11_hard_deterministic',
         'players': players
     })
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     hash_value2 = compute_hash(env, actions)
     self.assertEqual(hash_value1, hash_value2)
     env.close()
@@ -419,8 +419,8 @@ class FootballEnvTest(parameterized.TestCase):
         'game_engine_random_seed': seed + 10,
         'reverse_team_processing': False
     })
-    env1 = football_env.FootballEnv(cfg1)
-    env2 = football_env.FootballEnv(cfg2)
+    env1 = create_wrapped_football_env(cfg1)
+    env2 = create_wrapped_football_env(cfg2)
     initial_obs = env1.reset()
     env2.reset()
     initial_state = env1.get_state()
@@ -497,7 +497,7 @@ class FootballEnvTest(parameterized.TestCase):
         'episode_number': episode,
         'reverse_team_processing': reverse,
     })
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     env.reset()
     o, _, done, _ = env.step(football_action_set.action_long_pass)
     done = False
@@ -519,7 +519,7 @@ class FootballEnvTest(parameterized.TestCase):
         'episode_number': episode,
         'reverse_team_processing': reverse,
     })
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     o = env.reset()
     done = False
     while not done:
@@ -538,7 +538,7 @@ class FootballEnvTest(parameterized.TestCase):
         'level': 'tests.penalty',
         'players': ['agent:left_players=1'],
     })
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     o = env.reset()
     done = False
     while not done:
@@ -560,7 +560,7 @@ class FootballEnvTest(parameterized.TestCase):
         'episode_number': episode,
         'reverse_team_processing': reverse,
     })
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     o = env.reset()
     done = False
     while not done:
@@ -582,7 +582,7 @@ class FootballEnvTest(parameterized.TestCase):
         'episode_number': episode,
         'reverse_team_processing': reverse,
     })
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     o = env.reset()
     done = False
     while not done:
@@ -660,7 +660,7 @@ class FootballEnvTest(parameterized.TestCase):
     cfg = config.Config({
         'level': '11_vs_11_competition',
     })
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     obs = env.reset()
     state = env.get_state()
     env.reset()
@@ -675,7 +675,7 @@ class FootballEnvTest(parameterized.TestCase):
     cfg = config.Config({
         'level': 'academy_empty_goal_close',
     })
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     env.reset()
     state = env.get_state()
     # Go right until reaching the goal.

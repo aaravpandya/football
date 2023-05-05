@@ -19,10 +19,10 @@ from __future__ import division
 from __future__ import print_function
 
 from gfootball.env import config
-from gfootball.env import football_env
+from gfootball.env import create_wrapped_football_env
 from gfootball.env import observation_preprocessing
 from gfootball.env import wrappers
-
+from gymnasium.wrappers import EnvCompatibility
 
 def _process_reward_wrappers(env, rewards):
   assert 'scoring' in rewards.split(',')
@@ -209,7 +209,7 @@ def create_environment(env_name='',
   config_values.update(other_config_options)
   c = config.Config(config_values)
 
-  env = football_env.FootballEnv(c)
+  env = create_wrapped_football_env(c)
   if multiagent_to_singleagent:
     env = wrappers.MultiAgentToSingleAgent(
         env, number_of_left_players_agent_controls,

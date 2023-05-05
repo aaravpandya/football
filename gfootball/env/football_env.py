@@ -28,10 +28,11 @@ from gfootball.env import constants
 from gfootball.env import football_action_set
 from gfootball.env import football_env_core
 from gfootball.env import observation_rotation
-import gym
+import gymnasium as gym
+from gymnasium.wrappers import EnvCompatibility
 import numpy as np
 
-
+@DeprecationWarning('This environment is deprecated. Please use create_wrapped_football_env().')
 class FootballEnv(gym.Env):
   """Allows multiple players to play in the same environment."""
 
@@ -221,3 +222,9 @@ class FootballEnv(gym.Env):
   def disable_render(self):
     self._cached_observation = None
     return self._env.disable_render()
+
+
+def create_wrapped_football_env(config):
+    env = FootballEnv(config)
+    wrapped_env = EnvCompatibility(env)
+    return wrapped_env

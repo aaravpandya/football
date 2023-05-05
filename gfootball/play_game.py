@@ -52,7 +52,7 @@ def main(_):
   if FLAGS.level:
     cfg_values['level'] = FLAGS.level
   cfg = config.Config(cfg_values)
-  env = football_env.FootballEnv(cfg)
+  env = create_wrapped_football_env(cfg)
   if FLAGS.render:
     env.render()
   env.reset()

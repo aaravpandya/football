@@ -114,7 +114,7 @@ class ScriptHelpers(object):
       config_update['tracesdir'] = directory
     config_update['write_video'] = True
     cfg.update(config_update)
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     if render:
       env.render()
     env.reset()

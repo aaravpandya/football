@@ -47,7 +47,7 @@ class ScriptHelpersTest(absltest.TestCase):
                     'bot:right_players=1', 'lazy:right_players=1'],
         'tracesdir': test_tmpdir
     })
-    env = football_env.FootballEnv(cfg)
+    env = create_wrapped_football_env(cfg)
     env.reset()
     actions_cnt = len(football_action_set.get_action_set(cfg))
     done = False
