@@ -30,6 +30,7 @@ from gfootball.env import football_env_core
 from gfootball.env import observation_rotation
 import gymnasium as gym
 from gymnasium.wrappers import EnvCompatibility
+from gymnasium.spaces import Box
 import numpy as np
 
 @DeprecationWarning('This environment is deprecated. Please use create_wrapped_football_env().')
@@ -49,6 +50,7 @@ class FootballEnv(gym.Env):
     self._env = football_env_core.FootballEnvCore(self._config)
     self._num_actions = len(football_action_set.get_action_set(self._config))
     self._cached_observation = None
+    self.observation_space = Box(low=0, high=255, shape=(72, 96, 4), dtype=np.uint8)
 
   @property
   def action_space(self):

@@ -19,7 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 from gfootball.env import config
-from gfootball.env import create_wrapped_football_env
+from gfootball.env.football_env import create_wrapped_football_env
 from gfootball.env import observation_preprocessing
 from gfootball.env import wrappers
 from gymnasium.wrappers import EnvCompatibility
