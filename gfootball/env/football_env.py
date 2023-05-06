@@ -33,7 +33,7 @@ from gymnasium.wrappers import EnvCompatibility
 from gymnasium.spaces import Box
 import numpy as np
 
-@DeprecationWarning('This environment is deprecated. Please use create_wrapped_football_env().')
+
 class FootballEnv(gym.Env):
   """Allows multiple players to play in the same environment."""
 
