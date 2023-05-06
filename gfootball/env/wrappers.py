@@ -238,14 +238,14 @@ class SMMWrapper(gym.ObservationWrapper):
              channel_dimensions[0],
              len(
                  observation_preprocessing.get_smm_layers(
-                     self.env.unwrapped._config)))
+                     self.env.unwrapped.env._config)))
     self.observation_space = gym.spaces.Box(
         low=0, high=255, shape=shape, dtype=np.uint8)
 
   def observation(self, obs):
     return observation_preprocessing.generate_smm(
         obs, channel_dimensions=self._channel_dimensions,
-        config=self.env.unwrapped._config)
+        config=self.env.unwrapped.env.env._config)
 
 
 class SingleAgentObservationWrapper(gym.ObservationWrapper):
@@ -295,7 +295,7 @@ class CheckpointRewardWrapper(gym.RewardWrapper):
     return from_pickle
 
   def reward(self, reward):
-    observation = self.env.unwrapped.observation()
+    observation = self.env.unwrapped.env.observation()
     if observation is None:
       return reward
 
